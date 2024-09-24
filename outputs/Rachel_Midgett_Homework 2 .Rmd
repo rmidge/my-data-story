@@ -1,0 +1,135 @@
+---
+title: "Missing Migrant Patterns in the Americas"
+author: "Rachel Midgett"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    theme: paper
+    number_sections: 2
+    toc_depth: 2
+    code_folding: hide
+bibliography: references.bib
+
+---
+```{r setup, echo=TRUE, warning=FALSE, message=FALSE, show_col_types = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(lubridate)
+library(knitr)
+
+all_data <- read_csv("/Users/midge/Downloads/Missing_Migrants_Global_Figures_allData.csv")
+
+americas_data <- all_data %>%
+  filter(`UNSD Geographical Grouping` %in% c("Northern America", "South America", "Central America", "Caribbean"))
+```
+
+# Introduction
+In the United States, migration has always been a complex and contentious issue, shaped by countless factors including economic opportunity, political instability, and environmental challenges. In recent years, the Americas have witnessed an increase in the number of people braving dangerous journeys in search of a better life. The Missing Migrants Project [@IOM2024] provides crucial data that quantifies the human cost of these migrations, revealing not only the routes taken but also the groups and areas most affected. The patterns of migrant deaths and disappearances across various migration routes indicate which areas pose greater risks than others. Understanding these dynamics is integral for informing policy decisions and directing humanitarian efforts to where they are needed most.
+
+## Migration Routes and Incident Hotspots
+The analysis of migration routes where incidents occur shows the routes and regions that pose higher risks to migrants. The bar chart below illustrates the count of incidents by geography. Understanding these patterns is integral to informing policy and planning humanitarian action.
+
+
+```{r americas_counts}
+
+americas_counts <- americas_data %>%
+  count(`UNSD Geographical Grouping`, name = "count") %>%
+  arrange(desc(count))
+
+ggplot(americas_counts, aes(x = reorder(`UNSD Geographical Grouping`, count), y = count)) +
+  geom_col(fill = "gray") +
+  coord_flip() +
+  labs(title = "Count of Incidents by Geography in the Americas",
+       x = "Geography",
+       y = "Count") +
+  theme_minimal()
+```
+
+## Geographical Distribution of Incidents
+The geographical distribution of incidents highlights the areas most affected by migrant deaths and disappearances. The table below summarizes the most frequently used migration routes. This information provides insight for understanding which paths are most dangerous for migrants.
+
+```{r routes, echo=TRUE, warning=FALSE, message=FALSE}
+
+americas_routes <- americas_data %>%
+  count(`Migration Route`, name = "Count") %>%
+  mutate(Percentage = round(Count / sum(Count) * 100, 1)) %>%
+  arrange(desc(Count)) %>%
+  mutate(Rank = row_number(),
+         Percentage = paste0(Percentage, "%"))
+
+routes_table <- americas_routes %>%
+  select(Rank, `Migration Route`, Count, Percentage)
+
+kable(routes_table, 
+      col.names = c("Rank", "Migration Route", "Count", "Percentage"),
+      align = c("c", "l", "r", "r"),
+      caption = "Migration Routes in the Americas")
+
+na_route_countries <- americas_data %>%
+  filter(is.na(`Migration Route`)) %>%
+  count(`Country of Incident`, sort = TRUE, name = "Count") %>%
+  mutate(Percentage = round(Count / sum(Count) * 100, 1))
+
+ggplot(na_route_countries, aes(x = reorder(`Country of Incident`, Count), y = Count)) +
+  geom_col(fill = "black") +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            hjust = -0.1, color = "black", size = 3) +
+  coord_flip() +
+  labs(title = "Incidents with Unknown Migration Route by Country",
+       x = "Country of Incident",
+       y = "Count") +
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2)))  # Expand y-axis to fit labels
+```
+
+### Key Migration Routes:
+1. US-Mexico Border: The US-Mexico border is the most treacherous path, accounting for 75.4% of incidents. This figure underscores the intense concentration of risk along this particular route.
+
+
+  
+2. Unclassified Routes: The second most common category is "NA" (Not Available), representing 18.1% of incidents. This perhaps points to the covert nature of migration patterns.
+   
+   Further analysis reveals that of these unclassified incidents: 64% are recorded in Mexico, 9.3% in Colombia, and 6.3% in Chile. This distribution suggests that while many of these unclassified incidents likely relate to routes  leading to the US-Mexico border, there are also migration flows within South America that may be    under reported or less well understood.
+
+
+
+3. The Darien Gap: The Darien Gap, a dense jungle region between Colombia and Panama, is the third most dangerous route, accounting for 4.4% of incidents. This passage is known for its harsh conditions and the risks it poses to migrants [@franco2023addressing]. The presence of Colombia in the unclassified incidents data further underscores the significance of this route.
+
+
+### Risks:
+  + Migrants face various risks including harsh weather conditions and terrain.
+  + Political instability can exacerbate dangers during migration.
+  + Lack of resources and support increases vulnerability.
+
+## Trend of Migrant Deaths and Disappearances
+
+```{r trends}
+
+trends_americas <- americas_data %>%
+  mutate(Year = year(`Incident Date`)) %>%
+  filter(!is.na(Year)) %>%
+  count(Year, wt = `Total Number of Dead and Missing`, name = "Total_Missing") %>%
+  arrange(Year)
+
+ggplot(trends_americas, aes(x = Year, y = Total_Missing)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Trend of Dead or Missing Migrants in the Americas",
+       x = "Year",
+       y = "Total Count") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(trends_americas$Year), max(trends_americas$Year), by = 1))
+```
+
+
+### Insights:
+  + There's a general upward trend in the number of dead or missing migrants from 2014 to 2024.
+  + Significant spikes are observed in 2021 and 2022, possibly correlating with specific events,        such as the COVID-19 pandemic, policy changes, or political instability.
+  + The most recent years show a sharp decline, which could be due to changes in migration patterns,     policies, or reporting methods.
+
+# References
+
+
+
+
